@@ -26,4 +26,6 @@ public class SnmpResource {
         return Response.status(404).build();
     }
 
+    //TODO query all devices and after a specific one(use queryparams)
+
 }

@@ -1,3 +1,3 @@
-# projectx
+# snmp-app
 
 Cel mai proiect

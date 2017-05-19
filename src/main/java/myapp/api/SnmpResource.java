@@ -1,31 +1,61 @@
 package myapp.api;
 
+import myapp.Validations;
 import myapp.model.Device;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Path("snmp")
 public class SnmpResource {
 
+    Device one = new Device("one");
+    Device two = new Device("two");
+    Device three = new Device("three");
+    List list = new ArrayList();
+
     @GET
     @Path("hello")
     public Response sayHello() {
-        return Response.status(Response.Status.OK).entity("Hello! 0").build();
-//        Response.ok("Hello! 1").build();
+        return Response.status(Response.Status.OK).entity("Hello!!!!").build();
     }
 
     @GET
     @Path("device/{name}")
     public Response getDevice(@PathParam("name") String name) {
-        Device d1 = new Device("d1");
-        if (name.equals("ceva")) return Response.ok(d1, MediaType.APPLICATION_JSON).build();
-        return Response.status(404).build();
+        list.add(one);
+        list.add(two);
+        list.add(three);
+        Device tmp = new Device(name);
+        if (list.contains(tmp)) return Response.ok(list.get(list.indexOf(tmp)), MediaType.APPLICATION_JSON).build();
+        return Response.ok("Not found").build();
     }
 
-    //TODO query all devices and after a specific one(use queryparams)
+    @GET
+    @Path("device")
+    public Response getAllDevices() {
+        list.add(one);
+        list.add(two);
+        list.add(three);
+        return Response.ok(list, MediaType.APPLICATION_JSON).build();
+    }
+
+    @POST
+    @Path("ask")
+    @Consumes("application/json")
+    @Produces("application/json")
+    public Response getOid(List<String> body) {
+        if (body.stream().filter(oidString -> !Validations.isValidOID(oidString)).collect(Collectors.toList())
+                .size() > 0) return Response.status(Response.Status.BAD_REQUEST).build();
+
+
+        return Response.ok(body).build();
+    }
+
+
 
 }

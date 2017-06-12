@@ -10,11 +10,17 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Created by Victor Vlad Corcodel on 24/05/2017.
  */
 public class SNMPService {
+
+    static ExecutorService executorService = Executors.newFixedThreadPool(15);
 
     static Address targetAddress = null;
     static CommunityTarget target = new CommunityTarget();
@@ -29,31 +35,46 @@ public class SNMPService {
         target.setVersion(SnmpConstants.version2c);
     }
 
-    public static void main(String[] args) {
+    public static List<String> getPduResults(List<String> oids) {
+        List<String> results = new ArrayList<>();
         List<PDU> list = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            PDU pdu = getPDU("1.3.6.1.2.1.1.1.0");
+
+        for (String oid : oids) {
+            PDU pdu = getPDU(oid);
             list.add(pdu);
         }
 
-        long start = System.currentTimeMillis();
-        for (PDU p : list) {
-            performCall(p);
-        }
-        long stop = System.currentTimeMillis();
-        System.out.println(stop-start);
+        List<Future<String>> futureResults = new ArrayList<>();
 
-        System.out.println("\n"+"Threads time:");
-        List<Runnable> runnableList = new ArrayList<>();
-        for (PDU p : list) {
-            runnableList.add(new ParallelPDU(p));
-        }
-        long start1 = System.currentTimeMillis();
-        runnableList.forEach(t -> new Thread(t).start());
-        long stop1 = System.currentTimeMillis();
-        System.out.println(stop1-start1);
+        list.stream().forEach(pdu -> {futureResults.add(executorService.submit(new ParallelPDU(pdu)));});
 
+        futureResults.stream().forEach(future -> {
+                    try {
+                        results.add(future.get());
+                    } catch (Exception e) {
+                        System.out.println();
+                    }
+                }
+        );
 
+        executorService.shutdown();
+//        long start = System.currentTimeMillis();
+//        for (PDU p : list) {
+//            performCall(p);
+//        }
+//        long stop = System.currentTimeMillis();
+//        System.out.println(stop-start);
+//
+//        System.out.println("\n"+"Threads time:");
+//        List<Runnable> runnableList = new ArrayList<>();
+//        for (PDU p : list) {
+//            runnableList.add(new ParallelPDU(p));
+//        }
+//        long start1 = System.currentTimeMillis();
+//        runnableList.forEach(t -> new Thread(t).start());
+//        long stop1 = System.currentTimeMillis();
+//        System.out.println(stop1-start1);
+        return results;
     }
 
     public static PDU getPDU(String oid) {
@@ -75,11 +96,9 @@ public class SNMPService {
             if (response.getResponse() == null) {
                 // request timed out
             } else {
-                System.out.println("Received response from: " +
-                        response.getPeerAddress());
-                // dump response PDU
-                System.out.println(response.getResponse().toString());
-                return response.toString();
+//                System.out.println("Received response from: " +
+//                        response.getPeerAddress() + response.getResponse().toString());
+                return response.getResponse().toString();
             }
         } catch (Exception e) {
 
@@ -89,7 +108,7 @@ public class SNMPService {
 
 }
 
-class ParallelPDU implements Runnable {
+class ParallelPDU implements Callable<String> {
 
     PDU pdu;
 
@@ -98,7 +117,8 @@ class ParallelPDU implements Runnable {
     }
 
     @Override
-    public void run() {
-        SNMPService.performCall(this.pdu);
+    public String call() throws Exception {
+        return SNMPService.performCall(pdu);
     }
+
 }

@@ -20,8 +20,6 @@ import java.util.concurrent.Future;
  */
 public class SNMPService {
 
-    static ExecutorService executorService = Executors.newFixedThreadPool(15);
-
     static Address targetAddress = null;
     static CommunityTarget target = new CommunityTarget();
 
@@ -36,6 +34,7 @@ public class SNMPService {
     }
 
     public static List<String> getPduResults(List<String> oids) {
+        ExecutorService executorService = Executors.newFixedThreadPool(15);
         List<String> results = new ArrayList<>();
         List<PDU> list = new ArrayList<>();
 
